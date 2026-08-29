@@ -26,10 +26,10 @@ Intent Loop는 이 구성을 전제로 합니다. 계획·구현·검증과 작�
 
 ```sh
 # Codex
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.0 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.1 -- intent-loop init --host codex
 
 # Claude Code
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.0 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.1 -- intent-loop init --host claude
 ```
 
 패키지 설치 단계의 자동 스크립트는 실행하지 않습니다. 프로젝트 설정은 명시적으로 실행한 `init`에서만 변경합니다.
