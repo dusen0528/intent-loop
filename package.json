@@ -20,8 +20,7 @@
     "skills/",
     "hooks/",
     ".codex-plugin/",
-    ".claude-plugin/",
-    "SECURITY.md"
+    ".claude-plugin/"
   ],
   "scripts": {
     "test": "node --test tests/installer.test.mjs && python3 -m unittest discover -s tests"

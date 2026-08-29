@@ -14,7 +14,7 @@ REQUIRED = {
     'package/hooks/hooks.json', 'package/.codex-plugin/plugin.json',
     'package/.claude-plugin/plugin.json',
 }
-OPTIONAL = {'package/LICENSE', 'package/SECURITY.md'}
+OPTIONAL = {'package/LICENSE'}
 SECRET = re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|'
                     rb'npm_[A-Za-z0-9]{36,}|gh[pousr]_[A-Za-z0-9]{30,}|'
                     rb'github_pat_[A-Za-z0-9_]{40,}')
