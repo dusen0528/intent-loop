@@ -1,0 +1,5 @@
+{
+  "name": "intent-loop",
+  "version": "0.1.0",
+  "description": "Preserve session constraints across compaction and require review before work tools."
+}
