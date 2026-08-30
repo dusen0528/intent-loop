@@ -13,6 +13,8 @@ REQUIRED = {
     'package/scripts/review_gate.py', 'package/skills/intent-loop/SKILL.md',
     'package/hooks/hooks.json', 'package/.codex-plugin/plugin.json',
     'package/.claude-plugin/plugin.json',
+    'package/bin/user-plugin.mjs', 'package/.agents/plugins/marketplace.json',
+    'package/.claude-plugin/marketplace.json',
 }
 OPTIONAL = {'package/LICENSE'}
 SECRET = re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|'

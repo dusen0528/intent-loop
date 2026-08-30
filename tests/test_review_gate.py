@@ -14,7 +14,7 @@ class ReviewGateTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        self.root = Path(self.tmp.name).resolve()
 
     def hook(self, name, session='s1', **kw):
         event = dict(hook_event_name=name, session_id=session, cwd=str(self.root), **kw)
@@ -142,6 +142,19 @@ class ReviewGateTests(unittest.TestCase):
     def test_other_session_does_not_restore_constraints(self):
         self.begin()
         self.assertEqual(self.hook('SessionStart', session='s2', source='compact'), '')
+
+    def test_same_session_in_another_directory_is_isolated(self):
+        self.begin()
+        changes = [dict(op='add', id='c1', text='Keep originals.', source_quote='Do not delete files.')]
+        self.assertEqual(self.submit(changes).returncode, 0)
+        original = self.root
+        self.root = original / 'other-project'
+        self.root.mkdir()
+        self.assertEqual(self.hook('SessionStart', source='resume'), '')
+        self.begin('A separate project.')
+        self.assertEqual(self.state()[1]['constraints'], {})
+        self.root = original
+        self.assertIn('Keep originals.', self.hook('SessionStart', source='compact'))
 
     def test_missing_and_corrupt_state_fail_closed_for_work(self):
         self.assertTrue(self.blocked())

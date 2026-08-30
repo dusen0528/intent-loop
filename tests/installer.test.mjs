@@ -16,7 +16,7 @@ function workspace(t) {
   return root;
 }
 function run(root, action = 'init', host = 'codex') {
-  return spawnSync(process.execPath, [cli, action, '--host', host], { cwd: root, encoding: 'utf8' });
+  return spawnSync(process.execPath, [cli, action, '--host', host, '--scope', 'project'], { cwd: root, encoding: 'utf8' });
 }
 function write(root, name, content) {
   const target = path.join(root, name);
