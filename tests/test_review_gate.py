@@ -88,6 +88,16 @@ class ReviewGateTests(unittest.TestCase):
         self.hook('UserPromptSubmit', prompt='No deletes', turn_id='turn-1')
         self.assertFalse(self.blocked())
 
+    def test_changed_prompt_in_same_turn_requires_fresh_review(self):
+        self.hook('UserPromptSubmit', prompt='No deletes', turn_id='turn-1')
+        old = self.state()[1]['review_id']
+        self.assertEqual(self.submit().returncode, 0)
+        self.hook('UserPromptSubmit', prompt='Also no dependencies', turn_id='turn-1')
+        self.assertTrue(self.blocked())
+        self.assertNotEqual(self.state()[1]['review_id'], old)
+        self.assertNotEqual(self.submit(token=old).returncode, 0)
+        self.assertEqual(self.state()[1]['pending'][0]['text'], 'Also no dependencies')
+
     def test_shell_expansion_cannot_use_submission_exemption(self):
         self.begin()
         path, state=self.state()

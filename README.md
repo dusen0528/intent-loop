@@ -52,7 +52,7 @@ node "$HOME/intent-loop/bin/intent-loop.mjs" init --host codex
 node "$HOME/intent-loop/bin/intent-loop.mjs" init --host claude
 ```
 
-설치 후 Codex는 `/hooks`에서 새 훅을 확인하고 신뢰한 다음 새 세션을 시작합니다. Claude Code도 새 세션에서 사용합니다.
+설치 후 Codex는 프로젝트를 신뢰한 상태에서 `/hooks`로 새 훅을 확인하고 신뢰한 다음 새 세션을 시작합니다. 목록에 Intent Loop가 나타나는지 확인하세요. Claude Code도 새 세션에서 사용합니다.
 
 설치기는 현재 프로젝트에 훅과 지침을 복사합니다. 전역 설정을 수정하지 않고, 기존 훅을 보존하며, 같은 명령을 다시 실행해도 중복 등록하지 않습니다.
 
@@ -161,6 +161,10 @@ Side Constraint는 주된 작업과 함께 지켜야 하는 조건입니다. 논
 - **PreToolUse** — 검토 전 작업 호출을 차단합니다. 질문과 전용 제출 명령은 열어 둡니다.
 - **SessionStart** — resume·compact 시 같은 세션의 제약과 검토 상태를 복원합니다.
 - **Stop** — 미검토 종료를 한 번 막습니다. 재진입해 종료해도 작업 도구의 잠금은 유지됩니다.
+
+`init --host codex`는 `.codex/hooks.json`, `init --host claude`는 `.claude/settings.json`에 같은 Python 훅을 등록합니다. 실행 파일은 프로젝트의 `.intent-loop/review_gate.py`로 복사되므로 npm 캐시 위치에 의존하지 않습니다. 패키지의 `hooks/hooks.json`은 플러그인 로딩용이며, `CLAUDE_PLUGIN_ROOT`는 Codex에서도 지원하는 호환 환경 변수입니다.
+
+같은 턴 도중 새로운 지시가 들어와도 검토를 다시 요구합니다. 같은 턴 ID와 같은 본문이 연속 전달된 경우만 중복 이벤트로 취급합니다.
 
 별도 추출 모델, DB, MCP 서버, 새로운 작업 루프는 없습니다. 설치기는 Node 표준 라이브러리, 훅은 Python 표준 라이브러리만 사용합니다.
 
