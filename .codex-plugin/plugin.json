@@ -1,0 +1,18 @@
+{
+  "name": "intent-loop",
+  "version": "0.1.0",
+  "description": "Preserve session constraints across compaction and require review before work tools.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Intent Loop",
+    "shortDescription": "Keep session constraints through compaction.",
+    "longDescription": "A small instruction and hook pack requiring constraint review before new work tool calls. Experimental; not a security boundary.",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use Intent Loop to review and preserve the current task constraints.",
+    "developerName": "Local developer"
+  },
+  "author": {
+    "name": "Local developer"
+  }
+}
