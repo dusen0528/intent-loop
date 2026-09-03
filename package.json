@@ -1,0 +1,41 @@
+{
+  "name": "@dusen0528/intent-loop",
+  "version": "0.1.0",
+  "description": "Preserve session constraints across compaction and require review before work tools.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "intent-loop": "bin/intent-loop.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "files": [
+    "bin/",
+    "scripts/review_gate.py",
+    "skills/",
+    "hooks/",
+    ".codex-plugin/",
+    ".claude-plugin/",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/installer.test.mjs && python3 -m unittest discover -s tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dusen0528/intent-loop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dusen0528/intent-loop/issues"
+  },
+  "homepage": "https://github.com/dusen0528/intent-loop#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
