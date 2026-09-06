@@ -128,13 +128,15 @@ def hook(event):
             if not isinstance(prompt, str):
                 raise ValueError('user prompt is required')
             state = load(path) if path.exists() else dict(constraints={}, pending=[], reviewed=False, review_id='')
-            token = event.get('turn_id') or uuid.uuid4().hex
-            if not isinstance(token, str):
+            turn = event.get('turn_id')
+            if turn is not None and not isinstance(turn, str):
                 raise ValueError('turn_id must be a string')
-            # Codex supplies a stable turn_id. Claude events without one get a fresh token.
-            if token != state['review_id']:
+            # Deduplicate delivery, not the whole turn: steering can change its prompt.
+            delivery = hashlib.sha256(json.dumps([turn, prompt]).encode()).hexdigest() if turn else None
+            if delivery is None or delivery != state.get('last_delivery'):
+                token = uuid.uuid4().hex
                 state['pending'].append({'id': token, 'text': prompt})
-                state.update(review_id=token, reviewed=False)
+                state.update(review_id=token, reviewed=False, last_delivery=delivery)
                 save(path, state)
             return {'hookSpecificOutput': {'hookEventName': name,
                     'additionalContext': context(path, state, len(state['pending']) > 1)}}
