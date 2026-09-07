@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { installUserPlugin } from './user-plugin.mjs';
 
 const pkg = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = fs.realpathSync(process.cwd());
@@ -100,18 +101,28 @@ function apply(changes) {
 
 function main() {
   const args = process.argv.slice(2);
+  const usage = 'Usage: intent-loop <init|remove> --host <codex|claude> [--scope user|project]\nDefault: user-wide plugin; state stays in each working directory/session.';
   if (args.length === 0 || (args.length === 1 && ['--help', '-h'].includes(args[0]))) {
-    console.log('Usage: intent-loop <init|remove> --host <codex|claude>\nOperates on the current directory only.');
+    console.log(usage);
     return;
   }
-  const [action, flag, host] = args;
-  if (args.length !== 3 || !['init', 'remove'].includes(action) || flag !== '--host' || !Object.hasOwn(locations, host)) {
-    throw new Error('Usage: intent-loop <init|remove> --host <codex|claude>');
+  const [action, flag, host, scopeFlag, scopeValue] = args;
+  const scope = scopeValue ?? 'user';
+  if (![3, 5].includes(args.length) || !['init', 'remove'].includes(action) || flag !== '--host' || !Object.hasOwn(locations, host)
+      || (args.length === 5 && (scopeFlag !== '--scope' || !['user', 'project'].includes(scope)))) {
+    throw new Error(usage);
   }
   if (process.platform === 'win32') throw new Error('The Python hook requires POSIX (Linux/macOS).');
   if (action === 'init') {
     const python = spawnSync('python3', ['-I', '-c', 'import sys; sys.exit(sys.version_info < (3,10))'], { timeout: 10000 });
     if (python.status !== 0) throw new Error('Python 3.10+ must be available as python3.');
+  }
+  if (scope === 'user') {
+    if (action === 'init' && refersToRuntime(settings(locations[host][0]))) {
+      throw new Error(`Project hooks already reference Intent Loop. Run: intent-loop remove --host ${host} --scope project, then retry. Inspect modified/shared hooks before removing them.`);
+    }
+    installUserPlugin({ pkg, host, action });
+    return;
   }
   const [configPath, skillPath] = locations[host];
   const config = settings(configPath);

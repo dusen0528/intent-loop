@@ -1,0 +1,10 @@
+{
+  "name": "intent-loop",
+  "interface": { "displayName": "Intent Loop" },
+  "plugins": [{
+    "name": "intent-loop",
+    "source": { "source": "local", "path": "./" },
+    "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+    "category": "Productivity"
+  }]
+}

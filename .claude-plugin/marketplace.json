@@ -1,0 +1,5 @@
+{
+  "name": "intent-loop",
+  "owner": { "name": "dusen0528" },
+  "plugins": [{ "name": "intent-loop", "source": "./" }]
+}

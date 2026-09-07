@@ -16,58 +16,85 @@ Intent Loop는 이 구성을 전제로 합니다. 계획·구현·검증과 작�
 
 ## 설치
 
-**Node.js 22+ · Python 3.10+ · Linux/macOS**
+**Node.js 22+ · Python 3.10+ · Linux/macOS · 사용할 호스트의 CLI**
 
-사용할 **프로젝트 디렉터리에서** 아래 방법 중 하나를 선택합니다.
+0.2.0부터 기본 설치는 **사용자 전역 플러그인**입니다. 어느 디렉터리에서든 한 번 설치하면 해당 사용자의 새 프로젝트/세션에서 로드됩니다. 상태는 매 작업 디렉터리의 `.intent-review/<세션 해시>.json`에 분리됩니다. 다른 컴퓨터나 사용자에게 자동 설치되는 것은 아닙니다.
 
-### npm
-
-설치할 버전을 명시해 실행합니다.
+### npm (권장)
 
 ```sh
-# Codex
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.1 -- intent-loop init --host codex
+# Codex 전역 플러그인
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop init --host codex
 
-# Claude Code
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.1.1 -- intent-loop init --host claude
+# Claude Code 전역 플러그인
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop init --host claude
 ```
 
-패키지 설치 단계의 자동 스크립트는 실행하지 않습니다. 프로젝트 설정은 명시적으로 실행한 `init`에서만 변경합니다.
+`--scope user`가 기본입니다. 설치기는 플러그인 파일을 `~/.local/share/intent-loop/0.2.0/`에 보관한 다음 호스트의 공식 플러그인 CLI로 `intent-loop@intent-loop`를 설치합니다. npm 캐시를 지워도 실행 파일이 사라지지 않습니다. 별도 의존성이나 npm 자동 설치 스크립트는 없습니다.
 
-### Git clone
+Codex와 Claude는 각각 `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`과 공통 `hooks/hooks.json`, `skills/`를 사용합니다. 마켓플레이스는 각 호스트의 규격에 맞춰 별도 파일로 제공합니다.
 
-저장소 접근 권한이 있는 경우 소스를 직접 사용할 수 있습니다.
+Codex는 새 플러그인의 훅을 최초 한 번 `/hooks`에서 검토·신뢰해야 합니다. 이 신뢰는 플러그인에 기록되므로 프로젝트마다 반복할 필요가 없지만, 훅 정의가 바뀌면 다시 검토해야 합니다. 설치기는 신뢰 해시를 작성하거나 신뢰 검사를 우회하지 않습니다. 설치·업데이트 후에는 새 세션에서 사용하세요.
+
+CLI를 찾을 수 없다는 오류가 나면 먼저 해당 호스트의 CLI 설치/PATH를 확인하세요. 호스트 명령이 실패하면 완료된 단계와 소스는 보존되며, 오류 해결 후 같은 명령으로 재시도할 수 있습니다.
+
+### GitHub / Git clone
+
+저장소 접근 권한이 있는 경우:
 
 ```sh
-git clone https://github.com/dusen0528/intent-loop.git "$HOME/intent-loop"
+git clone https://github.com/dusen0528/intent-loop.git
+node intent-loop/bin/intent-loop.mjs init --host codex
+node intent-loop/bin/intent-loop.mjs init --host claude
 ```
 
-사용할 프로젝트 디렉터리에서 실행합니다.
+호스트의 마켓플레이스 CLI로 직접 설치할 수도 있습니다.
 
 ```sh
-# Codex
-node "$HOME/intent-loop/bin/intent-loop.mjs" init --host codex
+codex plugin marketplace add ./intent-loop
+codex plugin add intent-loop@intent-loop
 
-# Claude Code
-node "$HOME/intent-loop/bin/intent-loop.mjs" init --host claude
+claude plugin marketplace add ./intent-loop --scope user
+claude plugin install intent-loop@intent-loop --scope user
 ```
 
-설치 후 Codex는 프로젝트를 신뢰한 상태에서 `/hooks`로 새 훅을 확인하고 신뢰한 다음 새 세션을 시작합니다. 목록에 Intent Loop가 나타나는지 확인하세요. Claude Code도 새 세션에서 사용합니다.
+### 0.1.x 프로젝트 설치에서 이전
 
-설치기는 현재 프로젝트에 훅과 지침을 복사합니다. 전역 설정을 수정하지 않고, 기존 훅을 보존하며, 같은 명령을 다시 실행해도 중복 등록하지 않습니다.
-
-<details>
-<summary>Claude Code 플러그인으로 사용</summary>
-
-소스를 내려받은 뒤 플러그인 경로를 지정합니다.
+기존 설치를 사용한 **각 프로젝트 디렉터리에서** 실행합니다.
 
 ```sh
-claude --plugin-dir "$HOME/intent-loop"
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop remove --host codex --scope project
+# Claude 프로젝트 설치를 사용했다면:
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop remove --host claude --scope project
 ```
 
-플러그인 로딩과 프로젝트 `init` 설치 중 하나를 선택합니다. 같은 팩을 두 방식으로 중복 활성화하지 않습니다.
+이후 전역 설치 명령을 실행하세요. 프로젝트 제거는 변경하지 않은 Intent Loop 등록/파일만 제거하며, 사용자 수정 파일·다른 훅·`.intent-review/`는 보존합니다. 수정된 등록은 직접 검토해야 합니다. 설치기는 현재 디렉터리의 기존 훅 중복을 확인하지만, 다른 프로젝트까지 탐색하지는 않습니다.
 
-</details>
+이전에 `intent-loop@personal`, `intent-loop@intent-loop-local` 같은 별도 이름으로 설치했다면 해당 호스트의 플러그인 제거 명령으로 이전 설치를 제거하세요. 두 방식으로 중복 활성화하지 마세요.
+
+### 특정 프로젝트에만 설치 (선택)
+
+```sh
+intent-loop init --host codex --scope project
+intent-loop init --host claude --scope project
+```
+
+프로젝트 설치는 기존과 같이 `.codex/hooks.json` 또는 `.claude/settings.json`에 등록합니다. **전역 플러그인과 함께 사용하지 마세요.** 0.2.0에서 `remove`도 기본 대상이 전역으로 변경되었으므로 프로젝트 제거에는 반드시 `--scope project`가 필요합니다.
+
+### 제거
+
+```sh
+intent-loop remove --host codex
+intent-loop remove --host claude
+```
+
+전역 제거는 호스트의 공식 제거 명령을 사용하며, 상태 파일과 마켓플레이스 소스는 보존합니다.
+
+### 상태와 Git 제외
+
+`.intent-review/`에는 사용자 메시지와 제약 원문이 들어갑니다. 각 프로젝트의 `.gitignore` 또는 기존 전역 Git 제외 파일에 `**/.intent-review/`를 추가하세요. 설치기는 기존 Git 설정을 변경하지 않습니다.
+
+상태 경계는 호스트가 전달한 **작업 디렉터리(cwd) + 세션 ID**입니다. 같은 저장소라도 다른 작업 디렉터리나 worktree에서 시작하면 별도로 저장합니다. 세션 도중 cwd를 바꾸지 말고, 독립 작업은 새 세션으로 시작하세요.
 
 ## Failure mode
 
@@ -162,7 +189,7 @@ Side Constraint는 주된 작업과 함께 지켜야 하는 조건입니다. 논
 - **SessionStart** — resume·compact 시 같은 세션의 제약과 검토 상태를 복원합니다.
 - **Stop** — 미검토 종료를 한 번 막습니다. 재진입해 종료해도 작업 도구의 잠금은 유지됩니다.
 
-`init --host codex`는 `.codex/hooks.json`, `init --host claude`는 `.claude/settings.json`에 같은 Python 훅을 등록합니다. 실행 파일은 프로젝트의 `.intent-loop/review_gate.py`로 복사되므로 npm 캐시 위치에 의존하지 않습니다. 패키지의 `hooks/hooks.json`은 플러그인 로딩용이며, `CLAUDE_PLUGIN_ROOT`는 Codex에서도 지원하는 호환 환경 변수입니다.
+`init --host codex|claude`는 사용자 전역 플러그인을 설치합니다. `--scope project`를 명시하면 `.codex/hooks.json` 또는 `.claude/settings.json`에 같은 Python 훅을 등록합니다. 전역 설치는 호스트 플러그인 캐시의 `scripts/review_gate.py`, 프로젝트 설치는 `.intent-loop/review_gate.py`를 사용하며 npm 캐시 위치에 의존하지 않습니다. 패키지의 `hooks/hooks.json`은 플러그인 로딩용이며, `CLAUDE_PLUGIN_ROOT`는 Codex에서도 지원하는 호환 환경 변수입니다.
 
 같은 턴 도중 새로운 지시가 들어와도 검토를 다시 요구합니다. 같은 턴 ID와 같은 본문이 연속 전달된 경우만 중복 이벤트로 취급합니다.
 
