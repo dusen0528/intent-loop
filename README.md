@@ -18,7 +18,7 @@ Intent Loop는 이 구성을 전제로 합니다. 계획·구현·검증과 작�
 
 **Node.js 22+ · Python 3.10+ · Linux/macOS · 사용할 호스트의 CLI**
 
-0.2.0부터 기본 설치는 **사용자 전역 플러그인**입니다. 어느 디렉터리에서든 한 번 설치하면 해당 사용자의 새 프로젝트/세션에서 로드됩니다. 상태는 매 작업 디렉터리의 `.intent-review/<세션 해시>.json`에 분리됩니다. 다른 컴퓨터나 사용자에게 자동 설치되는 것은 아닙니다.
+기본 설치는 **사용자 전역 플러그인**입니다. 어느 디렉터리에서든 한 번 설치하면 해당 사용자의 새 프로젝트/세션에서 로드됩니다. 상태는 매 작업 디렉터리의 `.intent-review/<세션 해시>.json`에 분리됩니다. 다른 컴퓨터나 사용자에게 자동 설치되는 것은 아닙니다.
 
 ### npm (권장)
 
@@ -58,20 +58,6 @@ claude plugin marketplace add ./intent-loop --scope user
 claude plugin install intent-loop@intent-loop --scope user
 ```
 
-### 0.1.x 프로젝트 설치에서 이전
-
-기존 설치를 사용한 **각 프로젝트 디렉터리에서** 실행합니다.
-
-```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop remove --host codex --scope project
-# Claude 프로젝트 설치를 사용했다면:
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop remove --host claude --scope project
-```
-
-이후 전역 설치 명령을 실행하세요. 프로젝트 제거는 변경하지 않은 Intent Loop 등록/파일만 제거하며, 사용자 수정 파일·다른 훅·`.intent-review/`는 보존합니다. 수정된 등록은 직접 검토해야 합니다. 설치기는 현재 디렉터리의 기존 훅 중복을 확인하지만, 다른 프로젝트까지 탐색하지는 않습니다.
-
-이전에 `intent-loop@personal`, `intent-loop@intent-loop-local` 같은 별도 이름으로 설치했다면 해당 호스트의 플러그인 제거 명령으로 이전 설치를 제거하세요. 두 방식으로 중복 활성화하지 마세요.
-
 ### 특정 프로젝트에만 설치 (선택)
 
 ```sh
@@ -79,7 +65,7 @@ intent-loop init --host codex --scope project
 intent-loop init --host claude --scope project
 ```
 
-프로젝트 설치는 기존과 같이 `.codex/hooks.json` 또는 `.claude/settings.json`에 등록합니다. **전역 플러그인과 함께 사용하지 마세요.** 0.2.0에서 `remove`도 기본 대상이 전역으로 변경되었으므로 프로젝트 제거에는 반드시 `--scope project`가 필요합니다.
+프로젝트 설치는 `.codex/hooks.json` 또는 `.claude/settings.json`에 등록합니다. **전역 플러그인과 함께 사용하지 마세요.** 프로젝트 제거에는 `remove --scope project`를 사용합니다.
 
 ### 제거
 
