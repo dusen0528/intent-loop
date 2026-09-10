@@ -1,6 +1,6 @@
 {
   "name": "@dusen0528/intent-loop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Preserve session constraints across compaction and require review before work tools.",
   "license": "UNLICENSED",
   "type": "module",
@@ -21,7 +21,9 @@
     "hooks/",
     ".codex-plugin/",
     ".agents/plugins/marketplace.json",
-    ".claude-plugin/"
+    ".claude-plugin/",
+    "plugin.json",
+    "README.en.md"
   ],
   "scripts": {
     "test": "node --test tests/*.test.mjs && python3 -m unittest discover -s tests"

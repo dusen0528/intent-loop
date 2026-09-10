@@ -14,7 +14,7 @@ REQUIRED = {
     'package/hooks/hooks.json', 'package/.codex-plugin/plugin.json',
     'package/.claude-plugin/plugin.json',
     'package/bin/user-plugin.mjs', 'package/.agents/plugins/marketplace.json',
-    'package/.claude-plugin/marketplace.json',
+    'package/.claude-plugin/marketplace.json', 'package/plugin.json', 'package/README.en.md',
 }
 OPTIONAL = {'package/LICENSE'}
 SECRET = re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|'
@@ -44,9 +44,12 @@ def check(archive, ready=False, source=None):
         raise ValueError('unexpected lifecycle or package script')
     if manifest.get('bin') != {'intent-loop': 'bin/intent-loop.mjs'}:
         raise ValueError('unexpected CLI entry point')
-    for name in ('package/.codex-plugin/plugin.json', 'package/.claude-plugin/plugin.json'):
+    for name in ('package/plugin.json', 'package/.codex-plugin/plugin.json', 'package/.claude-plugin/plugin.json'):
         if json.loads(files[name])['version'] != manifest['version']:
             raise ValueError('plugin/package versions differ')
+    portable = json.loads(files['package/plugin.json'])
+    if portable.get('$schema') != 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json' or portable.get('name') != 'intent-loop':
+        raise ValueError('invalid Agent Plugins manifest identity')
     if ready:
         if manifest.get('private') or not re.fullmatch(r'@[^/]+/intent-loop', manifest['name']):
             raise ValueError('public scoped package identity is not ready')

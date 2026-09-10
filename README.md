@@ -26,13 +26,13 @@ Intent Loop는 이 구성을 전제로 합니다. 계획·구현·검증과 작�
 
 ```sh
 # Codex 전역 플러그인
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host codex
 
 # Claude Code 전역 플러그인
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.2.0 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host claude
 ```
 
-`--scope user`가 기본입니다. 설치기는 플러그인 파일을 `~/.local/share/intent-loop/0.2.0/`에 보관한 다음 호스트의 공식 플러그인 CLI로 `intent-loop@intent-loop`를 설치합니다. npm 캐시를 지워도 실행 파일이 사라지지 않습니다. 별도 의존성이나 npm 자동 설치 스크립트는 없습니다.
+`--scope user`가 기본입니다. 설치기는 플러그인 파일을 `~/.local/share/intent-loop/0.3.0/`에 보관한 다음 호스트의 공식 플러그인 CLI로 `intent-loop@intent-loop`를 설치합니다. npm 캐시를 지워도 실행 파일이 사라지지 않습니다. 별도 의존성이나 npm 자동 설치 스크립트는 없습니다.
 
 Codex와 Claude는 각각 `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`과 공통 `hooks/hooks.json`, `skills/`를 사용합니다. 마켓플레이스는 각 호스트의 규격에 맞춰 별도 파일로 제공합니다.
 
@@ -59,6 +59,23 @@ codex plugin add intent-loop@intent-loop
 claude plugin marketplace add ./intent-loop --scope user
 claude plugin install intent-loop@intent-loop --scope user
 ```
+
+### 업데이트
+
+**Codex·Claude의 열린 세션을 모두 종료하고 외부 터미널에서 실행하세요.** 호스트가 업데이트 중 이전 캐시를 제거할 수 있어 실행 중인 세션의 훅이 깨질 수 있습니다. CLI는 `CODEX_THREAD_ID` 또는 `CLAUDECODE`가 있는 에이전트 내부의 업데이트를 거부합니다. 다른 프로세스의 활성 세션을 자동 탐지하지는 않습니다.
+
+최신 npm 버전으로 전역 플러그인을 업데이트합니다. 해당 버전이 npm에 게시된 뒤 사용할 수 있습니다.
+
+```sh
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
+```
+
+버전을 고정하려면 `@latest` 대신 `@0.3.0`을 사용합니다. Git clone 설치는 `git pull --ff-only` 후 `node bin/intent-loop.mjs update --host codex`를 실행합니다. Claude는 호스트 인자를 `claude`로 바꿉니다.
+
+`update`는 실행 중인 CLI 패키지의 버전을 적용합니다. 오래된 전역 CLI에서 `intent-loop update`만 실행하면 npm의 최신 버전을 가져오지 않으므로 위 명령을 사용하세요. 새 소스를 버전별 디렉터리에 배치하고 공식 호스트 CLI로 설치를 갱신하며, 이전 소스와 `.intent-review/`는 보존합니다. 실패하면 오류를 해결한 뒤 같은 명령을 재실행합니다. 자동 롤백은 하지 않습니다.
+
+업데이트 후 새 세션을 시작하세요. Codex가 변경된 훅의 신뢰를 요구하면 `/hooks`에서 검토합니다. `update`는 사용자 전역 설치만 지원하며, 프로젝트 설치를 자동 덮어쓰지 않습니다.
 
 ### 특정 프로젝트에만 설치 (선택)
 
@@ -205,3 +222,9 @@ Side Constraint는 주된 작업과 함께 지켜야 하는 조건입니다. 논
 ## License
 
 라이선스 선택은 보류되어 있으며 npm 메타데이터는 `UNLICENSED`입니다.
+
+## 플러그인 형식과 호환성
+
+루트 `plugin.json`은 [Agent Plugins 1.0](https://agent-plugins.org/specification)의 `$schema`와 공통 메타데이터를 사용합니다. `skills/`는 표준 컴포넌트이며, MCP 서버는 포함하지 않습니다.
+
+검토 게이트는 표준의 공통 기능이 아닙니다. 기존 `.codex-plugin/`, `.claude-plugin/`, `hooks/hooks.json`은 호스트별 호환 패키징으로 유지합니다. 이 훅을 지원하지 않는 클라이언트에서는 스킬을 읽더라도 도구 차단이나 자동 복원이 보장되지 않습니다. 공통 manifest 로딩과 호스트 훅 실행은 각각 검증해야 합니다.

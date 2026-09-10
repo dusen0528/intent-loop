@@ -15,10 +15,11 @@ function setup(t) {
   const preload = path.join(base, 'home.mjs');
   fs.writeFileSync(preload, `import os from 'node:os'; os.homedir = () => ${JSON.stringify(base)};`);
   for (const host of ['codex', 'claude']) {
-    fs.writeFileSync(path.join(base, 'bin', host), `#!${process.execPath}\nconst fs=require('node:fs'); fs.appendFileSync(process.env.CALL_LOG,JSON.stringify(process.argv.slice(2))+'\\n'); if(process.env.FAIL_INSTALL && process.argv[2]==='plugin' && ['add','install'].includes(process.argv[3])) process.exit(9);\n`, { mode: 0o755 });
+    fs.writeFileSync(path.join(base, 'bin', host), `#!${process.execPath}\nconst fs=require('node:fs'); if(process.argv.includes('--json')) process.stdout.write(JSON.stringify({marketplaces:process.env.PREVIOUS_ROOT?[{name:'intent-loop',root:process.env.PREVIOUS_ROOT,marketplaceSource:{sourceType:'local',source:process.env.PREVIOUS_ROOT}}]:[]})); fs.appendFileSync(process.env.CALL_LOG,JSON.stringify(process.argv.slice(2))+'\\n'); if(process.env.FAIL_INSTALL && process.argv[2]==='plugin' && ['add','install'].includes(process.argv[3])) process.exit(9);\n`, { mode: 0o755 });
   }
   const log = path.join(base, 'calls');
   const env = { ...process.env, PATH: path.join(base, 'bin') + path.delimiter + process.env.PATH, CALL_LOG: log };
+  delete env.CODEX_THREAD_ID; delete env.CLAUDECODE; // Mock hosts run in an isolated temporary home.
   const run = (host='codex', action='init', cwd='a', extra={}) => spawnSync(process.execPath,
     ['--import', preload, path.join(pkg, 'bin/intent-loop.mjs'), action, '--host', host],
     { cwd: path.join(base, cwd), env: { ...env, ...extra }, encoding: 'utf8' });
@@ -71,4 +72,48 @@ test('default refuses a duplicate project hook installation', t => {
   fs.mkdirSync(path.join(base,'a','.codex'));
   fs.writeFileSync(path.join(base,'a','.codex/hooks.json'),JSON.stringify({hooks:{Stop:[{hooks:[{command:'python3 review_gate.py hook'}]}]}}));
   const result=run(); assert.notEqual(result.status,0); assert.match(result.stderr,/--scope project/);
+});
+
+test('update stages a new version, preserves old source/state and uses native host commands', t => {
+  const {base,run,root,log}=setup(t);
+  const old=path.join(base,'.local/share/intent-loop/0.2.0');
+  fs.mkdirSync(old,{recursive:true}); fs.writeFileSync(path.join(old,'keep'),'old version');
+  const state=path.join(base,'a','.intent-review'); fs.mkdirSync(state);
+  fs.writeFileSync(path.join(state,'session.json'),'preserve');
+  for (const host of ['codex','claude']) {
+    const result=run(host,'update','a',{PREVIOUS_ROOT:old}); assert.equal(result.status,0,result.stderr);
+    assert.match(result.stdout,/Updated user-wide/);
+  }
+  assert.equal(fs.readFileSync(path.join(old,'keep'),'utf8'),'old version');
+  assert.equal(fs.readFileSync(path.join(state,'session.json'),'utf8'),'preserve');
+  const portable=JSON.parse(fs.readFileSync(path.join(root,'plugin.json')));
+  assert.equal(portable.$schema,'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json');
+  assert.equal(portable.version,version);
+  assert.deepEqual(Object.keys(portable).sort(),['$schema','author','description','license','name','repository','version']);
+  assert.equal(portable.name,'intent-loop');
+  assert.equal(typeof portable.author.name,'string');
+  for (const key of ['description','license','repository','version']) assert.equal(typeof portable[key],'string');
+  const calls=fs.readFileSync(log,'utf8').trim().split('\n').map(JSON.parse);
+  assert.ok(calls.some(x=>JSON.stringify(x)===JSON.stringify(['plugin','update','intent-loop@intent-loop','--scope','user'])));
+  assert.ok(calls.some(x=>JSON.stringify(x)===JSON.stringify(['plugin','add','intent-loop@intent-loop'])));
+  assert.ok(calls.some(x=>JSON.stringify(x)===JSON.stringify(['plugin','marketplace','remove','intent-loop'])));
+  assert.ok(!calls.some(x=>x[0]==='plugin' && ['remove','uninstall'].includes(x[1])));
+});
+
+test('update refuses to replace a marketplace outside managed versions', t => {
+  const {run,log}=setup(t);
+  const result=run('codex','update','a',{PREVIOUS_ROOT:'/some/other/marketplace'});
+  assert.notEqual(result.status,0); assert.match(result.stderr,/not managed/);
+  assert.doesNotMatch(fs.readFileSync(log,'utf8'),/"remove"/);
+});
+
+test('in-agent update refuses before any host call or staged write', t => {
+  const {run,root,log}=setup(t);
+  for (const variable of ['CODEX_THREAD_ID','CLAUDECODE']) {
+    const result=run('codex','update','a',{[variable]:'active'});
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/external terminal/);
+    assert.ok(!fs.existsSync(log));
+    assert.ok(!fs.existsSync(root));
+  }
 });

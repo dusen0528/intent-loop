@@ -101,24 +101,28 @@ function apply(changes) {
 
 function main() {
   const args = process.argv.slice(2);
-  const usage = 'Usage: intent-loop <init|remove> --host <codex|claude> [--scope user|project]\nDefault: user-wide plugin; state stays in each working directory/session.';
+  const usage = 'Usage: intent-loop <init|update|remove> --host <codex|claude> [--scope user|project]\nDefault: user-wide plugin; state stays in each working directory/session.';
   if (args.length === 0 || (args.length === 1 && ['--help', '-h'].includes(args[0]))) {
     console.log(usage);
     return;
   }
   const [action, flag, host, scopeFlag, scopeValue] = args;
   const scope = scopeValue ?? 'user';
-  if (![3, 5].includes(args.length) || !['init', 'remove'].includes(action) || flag !== '--host' || !Object.hasOwn(locations, host)
+  if (![3, 5].includes(args.length) || !['init', 'update', 'remove'].includes(action) || flag !== '--host' || !Object.hasOwn(locations, host)
       || (args.length === 5 && (scopeFlag !== '--scope' || !['user', 'project'].includes(scope)))) {
     throw new Error(usage);
   }
+  if (action === 'update' && (process.env.CODEX_THREAD_ID || process.env.CLAUDECODE)) {
+    throw new Error('Close agent sessions and run update in an external terminal. Host updates can remove hook caches still used by active sessions.');
+  }
   if (process.platform === 'win32') throw new Error('The Python hook requires POSIX (Linux/macOS).');
-  if (action === 'init') {
+  if (action === 'update' && scope === 'project') throw new Error('update supports --scope user only; project installs are preserved.');
+  if (action !== 'remove') {
     const python = spawnSync('python3', ['-I', '-c', 'import sys; sys.exit(sys.version_info < (3,10))'], { timeout: 10000 });
     if (python.status !== 0) throw new Error('Python 3.10+ must be available as python3.');
   }
   if (scope === 'user') {
-    if (action === 'init' && refersToRuntime(settings(locations[host][0]))) {
+    if (action !== 'remove' && refersToRuntime(settings(locations[host][0]))) {
       throw new Error(`Project hooks already reference Intent Loop. Run: intent-loop remove --host ${host} --scope project, then retry. Inspect modified/shared hooks before removing them.`);
     }
     installUserPlugin({ pkg, host, action });

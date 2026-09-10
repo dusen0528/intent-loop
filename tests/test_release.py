@@ -16,7 +16,7 @@ class ReleaseTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('check_release', PATH)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        for bad in (None, 'extra', 'link', 'install', 'dependency', 'credential'):
+        for bad in (None, 'extra', 'link', 'install', 'dependency', 'credential', 'schema', 'version'):
             with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
                 archive = Path(tmp)/'test.tgz'
                 manifest = {'name':'@dusen0528/intent-loop','version':'0.1.0',
@@ -27,6 +27,7 @@ class ReleaseTests(unittest.TestCase):
                 files['package/package.json']=json.dumps(manifest).encode()
                 for name in ('package/.codex-plugin/plugin.json','package/.claude-plugin/plugin.json'):
                     files[name]=b'{"version":"0.1.0"}'
+                files['package/plugin.json']=json.dumps({'$schema': 'wrong' if bad=='schema' else 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json', 'name':'intent-loop', 'version':'9.0.0' if bad=='version' else '0.1.0'}).encode()
                 if bad=='extra': files['package/.npmrc']=b'credential=hidden'
                 if bad=='credential': files['package/README.md']=b'-----BEGIN PRIVATE KEY-----'
                 with tarfile.open(archive,'w:gz') as tar:
