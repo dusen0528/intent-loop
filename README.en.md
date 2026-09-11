@@ -226,3 +226,7 @@ New source is staged in a versioned directory and applied through the host CLI. 
 Root `plugin.json` uses the [Agent Plugins 1.0](https://agent-plugins.org/specification) schema and portable metadata. `skills/` is a standard component; no MCP server is required.
 
 The review gate is host-specific, not part of the portable standard. Existing `.codex-plugin/`, `.claude-plugin/`, and `hooks/hooks.json` remain compatibility packaging. Loading the skill in another client does not imply tool blocking or automatic restoration. Portable manifest loading and host hook execution must be verified separately.
+
+### Concurrent sessions
+
+Global installation shares code, not session state. Each working directory stores `.intent-review/<session-id-hash>.json`. Different session IDs have independent constraints and review locks, even in the same directory. Identical session IDs in different directories remain isolated. Codex and Claude sessions use their distinct host-issued IDs; a custom host must not reuse the same ID in the same directory. Changing cwd selects different state rather than copying constraints automatically.

@@ -1,5 +1,7 @@
 """Real process/JSON contract tests for mandatory constraint review."""
 import json
+import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import shlex
 import subprocess
@@ -155,6 +157,29 @@ class ReviewGateTests(unittest.TestCase):
         self.assertEqual(self.state()[1]['constraints'], {})
         self.root = original
         self.assertIn('Keep originals.', self.hook('SessionStart', source='compact'))
+
+    def test_concurrent_sessions_keep_constraints_and_review_locks_separate(self):
+        sessions = ['codex-session-a', 'codex-session-b', 'claude-session-a']
+        def start(session):
+            return self.hook('UserPromptSubmit', session=session, prompt='Keep ' + session)
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(start, sessions))
+        directory = self.root / '.intent-review'
+        paths = [directory / (hashlib.sha256(s.encode()).hexdigest() + '.json') for s in sessions]
+        before = [p.read_bytes() for p in paths]
+        first = json.loads(before[0])
+        changes = [dict(op='add', id='c1', text='Keep ' + sessions[0], source_quote='Keep ' + sessions[0])]
+        result = subprocess.run([sys.executable, str(GATE), 'submit', str(paths[0]),
+                                 first['review_id'], json.dumps(changes)], capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(paths[1].read_bytes(), before[1])
+        self.assertEqual(paths[2].read_bytes(), before[2])
+        for index, session in enumerate(sessions):
+            output = self.hook('PreToolUse', session=session, tool_name='Bash', tool_input={'command':'true'})
+            self.assertEqual(bool(output), index != 0)
+            restored = self.hook('SessionStart', session=session, source='compact')
+            for other in sessions:
+                self.assertEqual(other in restored, other == session)
 
     def test_missing_and_corrupt_state_fail_closed_for_work(self):
         self.assertTrue(self.blocked())

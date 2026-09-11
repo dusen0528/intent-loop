@@ -228,3 +228,15 @@ Side Constraint는 주된 작업과 함께 지켜야 하는 조건입니다. 논
 루트 `plugin.json`은 [Agent Plugins 1.0](https://agent-plugins.org/specification)의 `$schema`와 공통 메타데이터를 사용합니다. `skills/`는 표준 컴포넌트이며, MCP 서버는 포함하지 않습니다.
 
 검토 게이트는 표준의 공통 기능이 아닙니다. 기존 `.codex-plugin/`, `.claude-plugin/`, `hooks/hooks.json`은 호스트별 호환 패키징으로 유지합니다. 이 훅을 지원하지 않는 클라이언트에서는 스킬을 읽더라도 도구 차단이나 자동 복원이 보장되지 않습니다. 공통 manifest 로딩과 호스트 훅 실행은 각각 검증해야 합니다.
+
+### 동시 작업의 상태 분리
+
+전역 설치는 실행 코드만 공유합니다. 제약과 검토 잠금은 각 작업 디렉터리 아래에서 세션 ID별로 분리됩니다.
+
+```text
+project-a/.intent-review/<session-1-hash>.json
+project-a/.intent-review/<session-2-hash>.json
+project-b/.intent-review/<session-1-hash>.json
+```
+
+한 세션의 검토 제출은 다른 세션의 잠금을 해제하지 않습니다. Codex·Claude가 같은 디렉터리에서 실행돼도 호스트가 부여한 서로 다른 세션 ID로 분리됩니다. 같은 디렉터리와 같은 세션 ID는 동일 상태를 가리키므로, 자체 호스트 연결에서 ID를 재사용하지 마세요. 세션 도중 작업 디렉터리를 바꾸면 다른 상태로 취급하며 이전 제약을 자동 복사하지 않습니다.
