@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "intent-loop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Preserve session constraints across compaction. Work-tool review gates require Codex or Claude Code hooks.",
   "author": {
     "name": "dusen0528"

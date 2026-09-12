@@ -26,13 +26,13 @@ Intent Loop는 이 구성을 전제로 합니다. 계획·구현·검증과 작�
 
 ```sh
 # Codex 전역 플러그인
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host codex
 
 # Claude Code 전역 플러그인
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host claude
 ```
 
-`--scope user`가 기본입니다. 설치기는 플러그인 파일을 `~/.local/share/intent-loop/0.3.0/`에 보관한 다음 호스트의 공식 플러그인 CLI로 `intent-loop@intent-loop`를 설치합니다. npm 캐시를 지워도 실행 파일이 사라지지 않습니다. 별도 의존성이나 npm 자동 설치 스크립트는 없습니다.
+`--scope user`가 기본입니다. 설치기는 플러그인 파일을 `~/.local/share/intent-loop/0.3.1/`에 보관한 다음 호스트의 공식 플러그인 CLI로 `intent-loop@intent-loop`를 설치합니다. npm 캐시를 지워도 실행 파일이 사라지지 않습니다. 별도 의존성이나 npm 자동 설치 스크립트는 없습니다.
 
 Codex와 Claude는 각각 `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`과 공통 `hooks/hooks.json`, `skills/`를 사용합니다. 마켓플레이스는 각 호스트의 규격에 맞춰 별도 파일로 제공합니다.
 
@@ -62,7 +62,11 @@ claude plugin install intent-loop@intent-loop --scope user
 
 ### 업데이트
 
-**Codex·Claude의 열린 세션을 모두 종료하고 외부 터미널에서 실행하세요.** 호스트가 업데이트 중 이전 캐시를 제거할 수 있어 실행 중인 세션의 훅이 깨질 수 있습니다. CLI는 `CODEX_THREAD_ID` 또는 `CLAUDECODE`가 있는 에이전트 내부의 업데이트를 거부합니다. 다른 프로세스의 활성 세션을 자동 탐지하지는 않습니다.
+업데이트 명령은 **외부 터미널**에서 실행합니다. `0.3.0` 이하에서 처음 전환할 때만 기존 세션을 모두 종료하세요. 이전 버전의 세션은 삭제 가능한 캐시 경로를 참조합니다.
+
+`0.3.1`부터 npm/설치 CLI가 등록하는 훅은 캐시 대신 `~/.local/share/intent-loop/<version>/scripts/review_gate.py`를 직접 실행합니다. 업데이트가 캐시를 삭제해도 기존 세션의 실행 파일은 남으며, 새 세션은 새 버전을 사용합니다. 이전 버전 보관 경로는 자동 삭제하지 않습니다. 이 보장은 CLI 전역 설치에 해당하며, 호스트 마켓플레이스 명령으로 소스를 직접 등록하는 방식에는 적용되지 않습니다.
+
+에이전트 내부 업데이트는 계속 거부합니다. 훅 정의가 바뀌면 호스트가 재신뢰를 요구할 수 있으며 설치기는 이를 우회하지 않습니다.
 
 최신 npm 버전으로 전역 플러그인을 업데이트합니다. 해당 버전이 npm에 게시된 뒤 사용할 수 있습니다.
 
@@ -71,7 +75,7 @@ npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- inten
 npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
 ```
 
-버전을 고정하려면 `@latest` 대신 `@0.3.0`을 사용합니다. Git clone 설치는 `git pull --ff-only` 후 `node bin/intent-loop.mjs update --host codex`를 실행합니다. Claude는 호스트 인자를 `claude`로 바꿉니다.
+버전을 고정하려면 `@latest` 대신 `@0.3.1`을 사용합니다. Git clone 설치는 `git pull --ff-only` 후 `node bin/intent-loop.mjs update --host codex`를 실행합니다. Claude는 호스트 인자를 `claude`로 바꿉니다.
 
 `update`는 실행 중인 CLI 패키지의 버전을 적용합니다. 오래된 전역 CLI에서 `intent-loop update`만 실행하면 npm의 최신 버전을 가져오지 않으므로 위 명령을 사용하세요. 새 소스를 버전별 디렉터리에 배치하고 공식 호스트 CLI로 설치를 갱신하며, 이전 소스와 `.intent-review/`는 보존합니다. 실패하면 오류를 해결한 뒤 같은 명령을 재실행합니다. 자동 롤백은 하지 않습니다.
 

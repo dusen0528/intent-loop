@@ -26,13 +26,13 @@ The default installation is a **user-wide plugin**. Install it once from any dir
 
 ```sh
 # User-wide Codex plugin
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host codex
 
 # User-wide Claude Code plugin
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.0 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host claude
 ```
 
-`--scope user` is the default. The installer stores plugin files in `~/.local/share/intent-loop/0.3.0/`, then installs `intent-loop@intent-loop` through the host's official plugin CLI. Clearing the npm cache does not remove the runtime files. There are no extra dependencies or automatic npm install scripts.
+`--scope user` is the default. The installer stores plugin files in `~/.local/share/intent-loop/0.3.1/`, then installs `intent-loop@intent-loop` through the host's official plugin CLI. Clearing the npm cache does not remove the runtime files. There are no extra dependencies or automatic npm install scripts.
 
 Codex and Claude use `.codex-plugin/plugin.json` and `.claude-plugin/plugin.json`, respectively, alongside the shared `hooks/hooks.json` and `skills/`. Separate marketplace files follow each host's format.
 
@@ -208,7 +208,9 @@ A license has not yet been selected. The npm metadata is `UNLICENSED`.
 
 ## Updates
 
-**Close all active Codex/Claude sessions and run updates from an external terminal.** Hosts may delete previous caches while updating, breaking hooks still referenced by running sessions. The CLI refuses updates when `CODEX_THREAD_ID` or `CLAUDECODE` indicates an agent shell; it does not detect active sessions in other processes.
+Run updates from an **external terminal**. Close existing sessions once when migrating from 0.3.0 or earlier, whose hooks reference disposable caches.
+
+From 0.3.1, CLI-installed user hooks execute the versioned runtime in `~/.local/share/intent-loop/<version>/scripts/review_gate.py` directly. Existing sessions retain their runtime even if a host deletes its cache; new sessions use the new version. Old runtime directories are not automatically deleted. This applies to user-wide CLI installs, not direct host marketplace installations. In-agent updates remain blocked, and changed hooks still require host trust review.
 
 After the target release is published to npm, update the user-wide plugin with:
 
@@ -217,7 +219,7 @@ npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- inten
 npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
 ```
 
-Replace `@latest` with `@0.3.0` to pin a version. For a source checkout, run `git pull --ff-only`, then `node bin/intent-loop.mjs update --host codex` (or `claude`). The updater applies the version of the CLI being executed; an old globally installed CLI does not fetch a newer npm release itself.
+Replace `@latest` with `@0.3.1` to pin a version. For a source checkout, run `git pull --ff-only`, then `node bin/intent-loop.mjs update --host codex` (or `claude`). The updater applies the version of the CLI being executed; an old globally installed CLI does not fetch a newer npm release itself.
 
 New source is staged in a versioned directory and applied through the host CLI. Previous source and session state are retained. On failure, resolve the error and retry; there is no automatic rollback. Start a new session afterward and review changed Codex hooks in `/hooks` when requested. Updates support user scope only; project files are never overwritten by this command.
 

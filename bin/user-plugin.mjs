@@ -27,7 +27,20 @@ export function installUserPlugin({ pkg, host, action }) {
   const files = ['plugin.json', '.codex-plugin/plugin.json', '.claude-plugin/plugin.json',
     '.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json',
     'hooks/hooks.json', 'skills/intent-loop/SKILL.md', 'scripts/review_gate.py'];
-  const payloads = files.map(name => [name, fs.readFileSync(path.join(pkg, name))]);
+  const payloads = files.map(name => {
+    const data = fs.readFileSync(path.join(pkg, name));
+    if (name !== 'hooks/hooks.json') return [name, data];
+    const config = JSON.parse(data);
+    const script = path.join(root, 'scripts/review_gate.py');
+    const quoted = "'" + script.replaceAll("'", "'\"'\"'") + "'";
+    // Running sessions must not depend on the host's disposable plugin cache.
+    for (const groups of Object.values(config.hooks)) {
+      for (const group of groups) {
+        for (const hook of group.hooks) hook.command = `python3 -I ${quoted} hook`;
+      }
+    }
+    return [name, Buffer.from(JSON.stringify(config, null, 2) + '\n')];
+  });
   // Preflight every target before creating anything; preserve edits and reject links.
   for (const [name, data] of payloads) {
     const target = path.join(root, name);

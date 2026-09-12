@@ -113,7 +113,7 @@ function main() {
     throw new Error(usage);
   }
   if (action === 'update' && (process.env.CODEX_THREAD_ID || process.env.CLAUDECODE)) {
-    throw new Error('Close agent sessions and run update in an external terminal. Host updates can remove hook caches still used by active sessions.');
+    throw new Error('Run update in an external terminal. When migrating from 0.3.0 or earlier, close agent sessions first to release legacy cache-based hooks.');
   }
   if (process.platform === 'win32') throw new Error('The Python hook requires POSIX (Linux/macOS).');
   if (action === 'update' && scope === 'project') throw new Error('update supports --scope user only; project installs are preserved.');

@@ -117,3 +117,31 @@ test('in-agent update refuses before any host call or staged write', t => {
     assert.ok(!fs.existsSync(root));
   }
 });
+
+test('running hooks survive deletion of the plugin cache', t => {
+  const {base,run,root}=setup(t);
+  assert.equal(run().status,0);
+  const cache=path.join(base,'disposable-cache'); fs.cpSync(root,cache,{recursive:true});
+  const hooks=JSON.parse(fs.readFileSync(path.join(cache,'hooks/hooks.json'))).hooks;
+  const script=path.join(root,'scripts/review_gate.py');
+  fs.rmSync(cache,{recursive:true});
+  const cwd=path.join(base,'a');
+  const invoke=(name,extra={})=>{
+    const result=spawnSync('/bin/sh',['-c',hooks[name][0].hooks[0].command],{
+      cwd,encoding:'utf8',env:{...process.env,CLAUDE_PLUGIN_ROOT:cache},
+      input:JSON.stringify({hook_event_name:name,session_id:'surviving-session',cwd,...extra}),
+    });
+    assert.equal(result.status,0,result.stderr);
+    assert.equal(result.stderr,'');
+    return result.stdout ? JSON.parse(result.stdout) : null;
+  };
+  const start=invoke('UserPromptSubmit',{prompt:'Keep originals.'});
+  assert.match(start.hookSpecificOutput.additionalContext,/pending/);
+  const statePath=path.join(cwd,'.intent-review',fs.readdirSync(path.join(cwd,'.intent-review')).find(f=>f.endsWith('.json')));
+  const state=JSON.parse(fs.readFileSync(statePath));
+  assert.equal(invoke('PreToolUse',{tool_name:'Bash',tool_input:{command:'true'}}).hookSpecificOutput.permissionDecision,'deny');
+  assert.equal(spawnSync('python3',['-I',script,'submit',statePath,state.review_id,'[]']).status,0);
+  assert.equal(invoke('PreToolUse',{tool_name:'Bash',tool_input:{command:'true'}}),null);
+  assert.match(invoke('SessionStart',{source:'compact'}).hookSpecificOutput.additionalContext,/reviewed/);
+  assert.equal(invoke('Stop'),null);
+});
