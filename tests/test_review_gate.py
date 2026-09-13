@@ -187,6 +187,22 @@ class ReviewGateTests(unittest.TestCase):
         self.state()[0].write_text('{broken')
         self.assertTrue(self.blocked())
 
+    def test_stop_errors_do_not_reblock_and_work_stays_locked(self):
+        for damaged in (False, True):
+            with self.subTest(damaged=damaged):
+                if damaged:
+                    self.begin()
+                    path = self.state()[0]
+                    path.write_text('{broken')
+                self.assertEqual(json.loads(self.hook('Stop'))['decision'], 'block')
+                repeated = json.loads(self.hook('Stop', stop_hook_active=True))
+                self.assertNotIn('decision', repeated)
+                self.assertIn('new session', repeated['systemMessage'])
+                self.assertNotIn('resubmit', repeated['systemMessage'])
+                self.assertTrue(self.blocked())
+                if damaged:
+                    self.assertEqual(path.read_text(), '{broken')
+
     def test_stop_blocks_pending_once_then_reports_incomplete(self):
         self.begin()
         self.assertEqual(json.loads(self.hook('Stop'))['decision'], 'block')

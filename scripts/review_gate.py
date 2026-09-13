@@ -170,9 +170,14 @@ def main():
             raise ValueError('hook input must be an object')
         result = hook(event)
     except (OSError, ValueError, KeyError, TypeError) as exc:
-        reason = f'Constraint review unavailable ({type(exc).__name__}); restore state or resubmit the user prompt.'
+        reason = (f'Constraint review unavailable ({type(exc).__name__}). Work tools remain blocked. '
+                  'Restore this session state in .intent-review/ from a known-good backup, or start a new session '
+                  'and restate its constraints. Preserve damaged state for recovery.')
         name = event.get('hook_event_name') if isinstance(event, dict) else None
-        result = deny(reason) if name == 'PreToolUse' else {'decision': 'block', 'reason': reason}
+        if name == 'Stop' and event.get('stop_hook_active') is True:
+            result = {'systemMessage': reason}
+        else:
+            result = deny(reason) if name == 'PreToolUse' else {'decision': 'block', 'reason': reason}
     if result:
         print(json.dumps(result, ensure_ascii=False))
 
