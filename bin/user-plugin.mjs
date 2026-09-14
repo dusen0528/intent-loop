@@ -12,6 +12,19 @@ function run(host, args, capture = false) {
   return result.stdout;
 }
 
+export function assertNoGlobalPlugin(host) {
+  const result = JSON.parse(run(host, ['plugin', 'list', '--json'], true));
+  const plugins = host === 'codex' ? result.installed : result;
+  if (!Array.isArray(plugins)) throw new Error('Could not verify global plugins; project installation left untouched.');
+  if (plugins.some(plugin => {
+    const id = host === 'codex' ? plugin.pluginId : plugin.id;
+    const global = host === 'codex' || ['user', 'managed'].includes(plugin.scope);
+    return global && typeof id === 'string' && id.split('@')[0] === 'intent-loop' && plugin.enabled !== false;
+  })) {
+    throw new Error('An active global Intent Loop plugin is already installed. Disable/remove it in the host before a project installation.');
+  }
+}
+
 export function installUserPlugin({ pkg, host, action }) {
   run(host, ['--version']);
   if (action === 'remove') {

@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import path from 'node:path';
@@ -9,14 +9,20 @@ import { fileURLToPath } from 'node:url';
 const pkg = process.env.INTENT_LOOP_TEST_PACKAGE || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(pkg, 'bin/intent-loop.mjs');
 const events = ['UserPromptSubmit', 'PreToolUse', 'SessionStart', 'Stop'];
+const hostBin = fs.mkdtempSync(path.join(os.tmpdir(), 'intent-host-list-'));
+after(() => fs.rmSync(hostBin, {recursive:true, force:true}));
+for (const host of ['codex','claude']) {
+  fs.writeFileSync(path.join(hostBin,host), `#!${process.execPath}\nprocess.stdout.write(process.env.PLUGIN_LIST || ${JSON.stringify(host === 'codex' ? '{"installed":[]}' : '[]')});`, {mode:0o755});
+}
+
 
 function workspace(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "intent space's-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }
-function run(root, action = 'init', host = 'codex') {
-  return spawnSync(process.execPath, [cli, action, '--host', host, '--scope', 'project'], { cwd: root, encoding: 'utf8' });
+function run(root, action = 'init', host = 'codex', extra = {}) {
+  return spawnSync(process.execPath, [cli, action, '--host', host, '--scope', 'project'], { cwd: root, encoding: 'utf8', env: {...process.env, PATH:hostBin+path.delimiter+process.env.PATH, ...extra} });
 }
 function write(root, name, content) {
   const target = path.join(root, name);
@@ -144,4 +150,24 @@ test('remove without an owned registration does not claim matching files', t => 
   write(root, '.intent-loop/review_gate.py', source);
   ok(run(root, 'remove'));
   assert.deepEqual(fs.readFileSync(path.join(root, '.intent-loop/review_gate.py')), source);
+});
+
+test('project init refuses active global plugins before writing, but removal still works', t => {
+  for (const host of ['codex','claude']) {
+    const root=workspace(t);
+    const entry=host==='codex' ? {pluginId:'intent-loop@custom',enabled:true} : {id:'intent-loop@custom',scope:'user',enabled:true};
+    const extra={PLUGIN_LIST:JSON.stringify(host==='codex'?{installed:[entry]}:[entry])};
+    const result=run(root,'init',host,extra);
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/global.*Intent Loop/i);
+    assert.deepEqual(fs.readdirSync(root),[]);
+    ok(run(root,'remove',host,extra));
+  }
+});
+
+test('project init rejects unreadable inventory and allows disabled global plugin', t => {
+  const root=workspace(t);
+  assert.notEqual(run(root,'init','codex',{PLUGIN_LIST:'{broken'}).status,0);
+  assert.deepEqual(fs.readdirSync(root),[]);
+  ok(run(root,'init','codex',{PLUGIN_LIST:JSON.stringify({installed:[{pluginId:'intent-loop@intent-loop',enabled:false}]})}));
 });

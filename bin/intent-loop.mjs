@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { installUserPlugin } from './user-plugin.mjs';
+import { installUserPlugin, assertNoGlobalPlugin } from './user-plugin.mjs';
 
 const pkg = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = fs.realpathSync(process.cwd());
@@ -128,6 +128,7 @@ function main() {
     installUserPlugin({ pkg, host, action });
     return;
   }
+  if (action === 'init') assertNoGlobalPlugin(host);
   const [configPath, skillPath] = locations[host];
   const config = settings(configPath);
   const originalConfig = JSON.stringify(config);
