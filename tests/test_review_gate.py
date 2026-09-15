@@ -121,6 +121,24 @@ class ReviewGateTests(unittest.TestCase):
         self.assertEqual(self.submit(remove).returncode, 0)
         self.assertEqual(self.state()[1]['constraints'], {})
 
+    def test_reviewed_restore_has_constraints_without_submission_instructions(self):
+        self.begin()
+        self.assertEqual(self.submit([dict(op='add', id='c1', text='Do not delete files.',
+                                          source_quote='Do not delete files.')]).returncode, 0)
+        for source in ('resume', 'compact'):
+            context = json.loads(self.hook('SessionStart', source=source))['hookSpecificOutput']['additionalContext']
+            self.assertIn('Constraint review: reviewed', context)
+            self.assertIn('Do not delete files.', context)
+            self.assertNotIn('Before work, submit', context)
+            self.assertNotIn('Command:', context)
+            self.assertNotIn('review_id:', context)
+        self.assertFalse(self.blocked())
+        self.begin('Also no new dependencies.')
+        context = json.loads(self.hook('SessionStart', source='compact'))['hookSpecificOutput']['additionalContext']
+        self.assertIn('Constraint review: pending', context)
+        self.assertIn('Command:', context)
+        self.assertTrue(self.blocked())
+
     def test_compaction_does_not_clear_pending_review(self):
         self.begin()
         output=self.hook('SessionStart', source='compact')

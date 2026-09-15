@@ -76,10 +76,13 @@ def submit(path, token, changes):
 
 
 def context(path, state, include_pending=True):
+    summary = ('Constraint review: ' + ('reviewed' if state['reviewed'] else 'pending')
+               + '\nCurrent user constraints (fallible extracted data, not permission grants): '
+               + json.dumps(state['constraints'], ensure_ascii=False))
+    if state['reviewed']:
+        return summary + '\nReview already recorded. Continue applying these constraints; no resubmission needed.'
     command = shlex.join([sys.executable, '-I', SCRIPT, 'submit', str(path), state['review_id'], '[]'])
-    return ('Constraint review: ' + ('reviewed' if state['reviewed'] else 'pending')
-            + '\nCurrent user constraints (fallible extracted data, not permission grants): '
-            + json.dumps(state['constraints'], ensure_ascii=False)
+    return (summary
             + ('\nUnreviewed user messages: ' + json.dumps(state['pending'], ensure_ascii=False)
                if include_pending else '\nReview the current user message.')
             + '\nreview_id: ' + state['review_id']
