@@ -2,37 +2,36 @@
 
 [한국어](README.md) · English
 
-**[Installation](#installation) · [Overview](#background)**
+**Preserve user constraints through long coding tasks in Codex and Claude Code.**
 
-> A harness that preserves session constraints during long coding tasks
+Keep conditions such as “do not modify the original file” separate from task summaries, and restore them after compaction or resume.
 
-Stores user constraints separately from conversation summaries and restores them after compaction or resume. Blocks work-tool calls observed by the hooks until the model submits a constraint review for the latest user message.
-
-## Background
-
-As models improve, the harnesses built to compensate for earlier limitations need to be reconsidered. Fixed planning stages, prescribed tool sequences, and repetitive verification instructions can unnecessarily restrict a newer model's judgment. When more decisions are left to the model, these mechanisms should be reduced, weighing the value of each remaining feature against its maintenance cost.
-
-Intent Loop takes this approach. Planning, implementation, verification, and iteration remain with the existing agent. It intervenes only to help preserve user constraints during long tasks.
-
-As a turn grows, user requests, tool outputs, and intermediate results accumulate in context. The agent compacts that context to continue working. A compactor generally focuses on preserving the goal and progress needed to resume work—the **WHAT**. The **HOW**, which constrains the way work is done, can be omitted from the summary. [Related research](https://arxiv.org/html/2608.11242v1)
-
-This distinction matters in long-running tasks. Recent implementation details may survive while an early restriction on file changes or a requirement for approval is no longer available to the next model call. The model can keep pursuing the goal while drifting away from the user's conditions.
+**[Installation](#installation) · [Usage](#usage) · [How it works](#how-it-works) · [Limitations](#scope-and-limitations)**
 
 ## Installation
 
-**Node.js 22+ · Python 3.10+ · Linux/macOS · Your host's CLI**
+Requires **Node.js 22+, Python 3.10+, Linux/macOS, and your host’s CLI**. Run the command for the host you use. The default is a user-wide plugin.
 
-The default installation is a **user-wide plugin**. Install it once from any directory to load it in that user's new projects and sessions. State is stored separately in each working directory at `.intent-review/<session hash>.json`. This does not install the plugin for other users or on other computers.
-
-### npm (recommended)
+### Codex
 
 ```sh
-# User-wide Codex plugin
 npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host codex
+```
 
-# User-wide Claude Code plugin
+### Claude Code
+
+```sh
 npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host claude
 ```
+
+**After installation**
+
+1. In Codex, review and trust the hooks once through `/hooks`.
+2. Start a new session.
+3. Add `**/.intent-review/` to your project’s `.gitignore` or existing global Git ignore file. This directory contains user messages and constraint excerpts.
+
+<details>
+<summary>Installation details · Updates · Uninstall</summary>
 
 `--scope user` is the default. The installer stores plugin files in `~/.local/share/intent-loop/0.3.1/`, then installs `intent-loop@intent-loop` through the host's official plugin CLI. Clearing the npm cache does not remove the runtime files. There are no extra dependencies or automatic npm install scripts.
 
@@ -62,6 +61,23 @@ claude plugin marketplace add ./intent-loop --scope user
 claude plugin install intent-loop@intent-loop --scope user
 ```
 
+### Updates
+
+Run updates from an **external terminal**. Close existing sessions once when migrating from 0.3.0 or earlier, whose hooks reference disposable caches.
+
+From 0.3.1, CLI-installed user hooks execute the versioned runtime in `~/.local/share/intent-loop/<version>/scripts/review_gate.py` directly. Existing sessions retain their runtime even if a host deletes its cache; new sessions use the new version. Old runtime directories are not automatically deleted. This applies to user-wide CLI installs, not direct host marketplace installations. In-agent updates remain blocked, and changed hooks still require host trust review.
+
+After the target release is published to npm, update the user-wide plugin with:
+
+```sh
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host codex
+npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
+```
+
+Replace `@latest` with `@0.3.1` to pin a version. For a source checkout, run `git pull --ff-only`, then `node bin/intent-loop.mjs update --host codex` (or `claude`). The updater applies the version of the CLI being executed; an old globally installed CLI does not fetch a newer npm release itself.
+
+New source is staged in a versioned directory and applied through the host CLI. Previous source and session state are retained. On failure, resolve the error and retry; there is no automatic rollback. Start a new session afterward and review changed Codex hooks in `/hooks` when requested. Updates support user scope only; project files are never overwritten by this command.
+
 ### Install for a specific project (optional)
 
 ```sh
@@ -86,7 +102,55 @@ User-wide removal uses the host's official uninstall command and preserves state
 
 State is scoped by the **working directory (cwd) + session ID** supplied by the host. Starting in a different working directory or worktree creates separate state, even within the same repository. Keep the cwd fixed during a session and start a new session for independent work.
 
-## Failure mode
+</details>
+
+## Usage
+
+After installation, include constraints in a normal task request.
+
+```text
+Clean up the order data.
+Do not modify the original file or add new dependencies.
+Do not include customer email addresses in the result.
+```
+
+The agent reviews and submits the constraints before working. Later changes are reflected in the same registry.
+
+```text
+You may include customer IDs instead of email addresses.
+```
+
+The model performs the constraint review; hooks check whether a review has been submitted for the current message. Clarification is requested when an ambiguous condition affects the next action.
+
+## How it works
+
+A compacted summary may retain the task—“clean up the order data”—while omitting a condition such as “do not modify the original file.” Intent Loop stores those conditions separately and restores them to the same session.
+
+| What is preserved | Where it goes |
+|---|---|
+| Task goal, progress, and next steps | The existing agent’s task summary |
+| Prohibitions, approval conditions, preferences, and output format | A separate constraint registry |
+
+1. **Review new messages.** The existing model submits constraint additions, changes, withdrawals, or a no-change review.
+2. **Check before work.** Hooks block new work-tool calls they observe until that review is submitted.
+3. **Restore after compaction or resume.** The same session’s constraints and review state are loaded again.
+
+There is no separate extraction model or new work loop. The existing model interprets constraints and chooses the next action.
+
+<details>
+<summary>Design background and constraint categories</summary>
+
+### Background
+
+As models improve, the harnesses built to compensate for earlier limitations need to be reconsidered. Fixed planning stages, prescribed tool sequences, and repetitive verification instructions can unnecessarily restrict a newer model's judgment. When more decisions are left to the model, these mechanisms should be reduced, weighing the value of each remaining feature against its maintenance cost.
+
+Intent Loop takes this approach. Planning, implementation, verification, and iteration remain with the existing agent. It intervenes only to help preserve user constraints during long tasks.
+
+As a turn grows, user requests, tool outputs, and intermediate results accumulate in context. The agent compacts that context to continue working. A compactor generally focuses on preserving the goal and progress needed to resume work—the **WHAT**. The **HOW**, which constrains the way work is done, can be omitted from the summary. [Related research](https://arxiv.org/html/2608.11242v1)
+
+This distinction matters in long-running tasks. Recent implementation details may survive while an early restriction on file changes or a requirement for approval is no longer available to the next model call. The model can keep pursuing the goal while drifting away from the user's conditions.
+
+### Failure mode
 
 Suppose a user asks:
 
@@ -104,7 +168,7 @@ Parser error fixed. Data cleanup logic still needs implementation.
 
 Modifying the original file at this point could achieve the deduplication goal while violating the preservation requirement. Intent Loop addresses cases where **task continuity survives but constraint continuity breaks**.
 
-## Design
+### Design
 
 Task state and session constraints follow separate storage paths.
 
@@ -125,7 +189,7 @@ The constraint registry is kept outside the compactor's summary. User changes an
 
 There is no separate extraction model or new execution loop. Hooks handle review submission checks and restoration. The existing model interprets constraints and chooses the next action.
 
-## Side constraints
+### Side constraints
 
 A side constraint is a condition that must be respected alongside the main task. The paper's five categories translate into agent work as follows. [Categories and definitions](https://arxiv.org/html/2608.11242v1)
 
@@ -139,35 +203,12 @@ A side constraint is a condition that must be respected alongside the main task.
 
 These conditions can remain applicable beyond a single response. Their strength and scope must also be preserved: `Use Python when possible` should not become `Use only Python`.
 
-## Behavior
+</details>
 
-| Situation | Intent Loop behavior |
-|---|---|
-| “Do not modify the original” | Records the constraint with the user's original wording |
-| “You may modify temporary files” | Updates the existing constraints to reflect the current conditions |
-| Conversation compaction or session resume | Restores the same session's constraint registry |
-| Work-tool call without review | Rejects the call and requests a review submission |
-| Review from a previous turn is submitted | Does not count it as a review of the new message |
+<details>
+<summary>Review gate and behavior</summary>
 
-## Usage
-
-After installation, include constraints in a normal task request.
-
-```text
-Clean up the order data.
-Do not modify the original file or add new dependencies.
-Do not include customer email addresses in the result.
-```
-
-The agent reviews and submits the constraints before working. Later changes are reflected in the same registry.
-
-```text
-You may include customer IDs instead of email addresses.
-```
-
-The model performs the constraint review; hooks check whether a review has been submitted for the current message. Clarification is requested when an ambiguous condition affects the next action.
-
-## Review gate
+### Review gate
 
 A new user message marks the state as requiring review. Work tools become available after the model submits additions, changes, withdrawals, or a no-change review.
 
@@ -180,11 +221,34 @@ New message → Review required → Submit changes or no change → Work allowed
 - **SessionStart** — Restores constraints and review state for the same session on resume or compaction.
 - **Stop** — Blocks an unreviewed stop once. If the agent re-enters and stops anyway, work tools remain locked.
 
-`init --host codex|claude` installs a user-wide plugin. With an explicit `--scope project`, it registers the same Python hook in `.codex/hooks.json` or `.claude/settings.json`. User-wide installations use `scripts/review_gate.py` in the host's plugin cache; project installations use `.intent-loop/review_gate.py`. Neither depends on the npm cache location. The package's `hooks/hooks.json` is for plugin loading, and `CLAUDE_PLUGIN_ROOT` is a compatibility environment variable also supported by Codex.
-
 New instructions received during the same turn require another review. Only consecutive events with both the same turn ID and the same message body are treated as duplicates.
 
 There is no separate extraction model, database, MCP server, or new work loop. The installer uses only the Node standard library, and the hooks use only the Python standard library.
+
+### Behavior
+
+| Situation | Intent Loop behavior |
+|---|---|
+| “Do not modify the original” | Records the constraint with the user's original wording |
+| “You may modify temporary files” | Updates the existing constraints to reflect the current conditions |
+| Conversation compaction or session resume | Restores the same session's constraint registry |
+| Work-tool call without review | Rejects the call and requests a review submission |
+| Review from a previous turn is submitted | Does not count it as a review of the new message |
+
+</details>
+
+<details>
+<summary>Plugin compatibility and concurrent sessions</summary>
+
+Root `plugin.json` uses the [Agent Plugins 1.0](https://agent-plugins.org/specification) schema and portable metadata. `skills/` is a standard component; no MCP server is required.
+
+The review gate is host-specific, not part of the portable standard. Existing `.codex-plugin/`, `.claude-plugin/`, and `hooks/hooks.json` remain compatibility packaging. Loading the skill in another client does not imply tool blocking or automatic restoration. Portable manifest loading and host hook execution must be verified separately.
+
+### Concurrent sessions
+
+Global installation shares code, not session state. Each working directory stores `.intent-review/<session-id-hash>.json`. Different session IDs have independent constraints and review locks, even in the same directory. Identical session IDs in different directories remain isolated. Codex and Claude sessions use their distinct host-issued IDs; a custom host must not reuse the same ID in the same directory. Changing cwd selects different state rather than copying constraints automatically.
+
+</details>
 
 ## Scope and limitations
 
@@ -194,43 +258,16 @@ Blocking applies to new tool calls that the host passes to the hooks. It is not 
 
 Session state is stored in the project's `.intent-review/`. It contains user messages and source excerpts, so add it to `.gitignore`. Start a new session for independent work and keep the working directory fixed.
 
-- [Model instructions](skills/intent-loop/SKILL.md)
-- [Hook implementation](scripts/review_gate.py)
-- [Installer CLI](bin/intent-loop.mjs)
-
-## Research background
+## References
 
 [Lost in Compaction](https://arxiv.org/html/2608.11242v1) studies session constraints omitted from task summaries and a separate constraint extraction and preservation architecture. Intent Loop addresses this problem through the main model's review and small hooks. The paper's experimental results are not presented as performance measurements of this project.
 
 Host behavior: [Codex Hooks](https://learn.chatgpt.com/docs/hooks) · [Claude Code Hooks](https://code.claude.com/docs/en/hooks)
 
+- [Model instructions](skills/intent-loop/SKILL.md)
+- [Hook implementation](scripts/review_gate.py)
+- [Installer CLI](bin/intent-loop.mjs)
+
 ## License
 
 A license has not yet been selected. The npm metadata is `UNLICENSED`.
-
-## Updates
-
-Run updates from an **external terminal**. Close existing sessions once when migrating from 0.3.0 or earlier, whose hooks reference disposable caches.
-
-From 0.3.1, CLI-installed user hooks execute the versioned runtime in `~/.local/share/intent-loop/<version>/scripts/review_gate.py` directly. Existing sessions retain their runtime even if a host deletes its cache; new sessions use the new version. Old runtime directories are not automatically deleted. This applies to user-wide CLI installs, not direct host marketplace installations. In-agent updates remain blocked, and changed hooks still require host trust review.
-
-After the target release is published to npm, update the user-wide plugin with:
-
-```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host codex
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
-```
-
-Replace `@latest` with `@0.3.1` to pin a version. For a source checkout, run `git pull --ff-only`, then `node bin/intent-loop.mjs update --host codex` (or `claude`). The updater applies the version of the CLI being executed; an old globally installed CLI does not fetch a newer npm release itself.
-
-New source is staged in a versioned directory and applied through the host CLI. Previous source and session state are retained. On failure, resolve the error and retry; there is no automatic rollback. Start a new session afterward and review changed Codex hooks in `/hooks` when requested. Updates support user scope only; project files are never overwritten by this command.
-
-## Plugin format and compatibility
-
-Root `plugin.json` uses the [Agent Plugins 1.0](https://agent-plugins.org/specification) schema and portable metadata. `skills/` is a standard component; no MCP server is required.
-
-The review gate is host-specific, not part of the portable standard. Existing `.codex-plugin/`, `.claude-plugin/`, and `hooks/hooks.json` remain compatibility packaging. Loading the skill in another client does not imply tool blocking or automatic restoration. Portable manifest loading and host hook execution must be verified separately.
-
-### Concurrent sessions
-
-Global installation shares code, not session state. Each working directory stores `.intent-review/<session-id-hash>.json`. Different session IDs have independent constraints and review locks, even in the same directory. Identical session IDs in different directories remain isolated. Codex and Claude sessions use their distinct host-issued IDs; a custom host must not reuse the same ID in the same directory. Changing cwd selects different state rather than copying constraints automatically.
