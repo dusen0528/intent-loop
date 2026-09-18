@@ -2,6 +2,8 @@
 
 [한국어](README.md) · English
 
+**[Installation](#installation) · [Overview](#background)**
+
 > A harness that preserves session constraints during long coding tasks
 
 Stores user constraints separately from conversation summaries and restores them after compaction or resume. Blocks work-tool calls observed by the hooks until the model submits a constraint review for the latest user message.
