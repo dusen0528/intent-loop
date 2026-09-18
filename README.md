@@ -15,13 +15,17 @@
 ### Codex
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@0.3.1 -- \
+  intent-loop init --host codex
 ```
 
 ### Claude Code
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@0.3.1 -- \
+  intent-loop init --host claude
 ```
 
 **설치 후**
@@ -72,8 +76,12 @@ claude plugin install intent-loop@intent-loop --scope user
 최신 npm 버전으로 전역 플러그인을 업데이트합니다. 해당 버전이 npm에 게시된 뒤 사용할 수 있습니다.
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host codex
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@latest -- \
+  intent-loop update --host codex
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@latest -- \
+  intent-loop update --host claude
 ```
 
 버전을 고정하려면 `@latest` 대신 `@0.3.1`을 사용합니다. Git clone 설치는 `git pull --ff-only` 후 `node bin/intent-loop.mjs update --host codex`를 실행합니다. Claude는 호스트 인자를 `claude`로 바꿉니다.

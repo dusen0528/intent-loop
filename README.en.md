@@ -15,13 +15,17 @@ Requires **Node.js 22+, Python 3.10+, Linux/macOS, and your host’s CLI**. Run 
 ### Codex
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host codex
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@0.3.1 -- \
+  intent-loop init --host codex
 ```
 
 ### Claude Code
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@0.3.1 -- intent-loop init --host claude
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@0.3.1 -- \
+  intent-loop init --host claude
 ```
 
 **After installation**
@@ -70,8 +74,12 @@ From 0.3.1, CLI-installed user hooks execute the versioned runtime in `~/.local/
 After the target release is published to npm, update the user-wide plugin with:
 
 ```sh
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host codex
-npm exec --yes --ignore-scripts --package=@dusen0528/intent-loop@latest -- intent-loop update --host claude
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@latest -- \
+  intent-loop update --host codex
+npm exec --yes --ignore-scripts \
+  --package=@dusen0528/intent-loop@latest -- \
+  intent-loop update --host claude
 ```
 
 Replace `@latest` with `@0.3.1` to pin a version. For a source checkout, run `git pull --ff-only`, then `node bin/intent-loop.mjs update --host codex` (or `claude`). The updater applies the version of the CLI being executed; an old globally installed CLI does not fetch a newer npm release itself.
